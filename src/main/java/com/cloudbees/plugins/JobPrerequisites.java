@@ -21,7 +21,10 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.*;
 import hudson.model.queue.CauseOfBlockage;
+import hudson.tasks.BatchFile;
+import hudson.tasks.CommandInterpreter;
 import hudson.tasks.Shell;
+import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -38,10 +41,15 @@ import static hudson.model.TaskListener.NULL;
 public class JobPrerequisites extends JobProperty<AbstractProject<?, ?>> implements Action {
 
     private final String script;
-    
+    private final String interpreter;
+
+    public static final String SHELL_SCRIPT = "shell script";
+    public static final String WINDOWS = "windows batch command";
+
     @DataBoundConstructor
-    public JobPrerequisites(String script) {
+    public JobPrerequisites(String script, String interpreter) {
         this.script = script;
+        this.interpreter = interpreter;
     }
 
     public String getScript() {
@@ -52,7 +60,7 @@ public class JobPrerequisites extends JobProperty<AbstractProject<?, ?>> impleme
      * @return true if all prerequisites a met on the target Node
      */
     public CauseOfBlockage check(Node node) throws IOException, InterruptedException {
-        Shell shell = new Shell(this.script);
+        CommandInterpreter shell = getCommandInterpreter(this.script);
         FilePath root = node.getRootPath();
         if (root == null) return new CauseOfBlockage.BecauseNodeIsOffline(node); //offline ?
 
@@ -61,6 +69,13 @@ public class JobPrerequisites extends JobProperty<AbstractProject<?, ?>> impleme
         int r = node.createLauncher(NULL).launch().cmds(shell.buildCommandLine(scriptFile))
                 .stdout(NULL).pwd(root).start().joinWithTimeout(60, TimeUnit.SECONDS, NULL);
         return r == 0 ? null : new BecausePrerequisitesArentMet(node);
+    }
+
+    private CommandInterpreter getCommandInterpreter(String script) {
+        if (WINDOWS.equals(interpreter)) {
+            return new BatchFile(script);
+        }
+        return new Shell(script);
     }
 
     @Extension
@@ -77,19 +92,21 @@ public class JobPrerequisites extends JobProperty<AbstractProject<?, ?>> impleme
         }
 
         @Override
-        public JobProperty<?> newInstance(StaplerRequest req,
-                                          JSONObject formData) throws FormException {
+        public JobProperty<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             if (formData.isNullObject()) {
                 return null;
             }
-
             JSONObject prerequisites = formData.getJSONObject("prerequisites");
-
             if (prerequisites.isNullObject()) {
                 return null;
             }
+            return req.bindJSON(JobPrerequisites.class,prerequisites);
+        }
 
-            return new JobPrerequisites(prerequisites.getString("script"));
+        public ListBoxModel doFillInterpreterItems() {
+            return new ListBoxModel()
+                    .add(SHELL_SCRIPT)
+                    .add(WINDOWS);
         }
 
     }

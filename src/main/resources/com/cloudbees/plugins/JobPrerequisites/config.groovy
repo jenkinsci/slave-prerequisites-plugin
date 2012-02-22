@@ -17,12 +17,19 @@
 
 package com.cloudbees.plugins.JobPrerequisites
 
+import com.cloudbees.plugins.JobPrerequisites
+import static com.cloudbees.plugins.JobPrerequisites.SHELL_SCRIPT
+
 def f=namespace(lib.FormTagLib)
 
 f.optionalBlock(title:_("Check job prerequisites"), name:"prerequisites",
         checked:instance!=null, help:"/plugin/slave-prerequisites/help.html") {
     f.nested {
-        f.entry(field:"script") {
+        f.entry(field: "interpreter", default: SHELL_SCRIPT) {
+            f.select()
+        }
+        
+        f.entry(field: "script") {
             f.textarea()
         }
     }
