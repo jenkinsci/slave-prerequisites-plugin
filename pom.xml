@@ -24,7 +24,7 @@
 
 	<artifactId>slave-prerequisites</artifactId>
 	<name>Slave Prerequisites plugin</name>
-	<version>1.0</version>
+	<version>1.1-SNAPSHOT</version>
 	<packaging>hpi</packaging>
 	<description>Run a script on slave node before letting a Job run on it, to check for prerequisites.</description>
 	<url>https://wiki.jenkins-ci.org/display/JENKINS/Slave+Prerequisites+Plugin</url>
