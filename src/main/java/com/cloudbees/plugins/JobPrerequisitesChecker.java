@@ -44,7 +44,7 @@ public class JobPrerequisitesChecker extends QueueTaskDispatcher {
     Map<String, Future<CauseOfBlockage>> futures = new HashMap<String, Future<CauseOfBlockage>>();
     
     @Override
-    public CauseOfBlockage canTake(final Node node, Queue.BuildableItem item) {
+    public CauseOfBlockage canTake(final Node node, final Queue.BuildableItem item) {
 
         final JobPrerequisites prerequisite = getPrerequisite(item);
         if (prerequisite == null) return null;
@@ -55,7 +55,7 @@ public class JobPrerequisitesChecker extends QueueTaskDispatcher {
             futures.put(key, pool.submit(new Callable<CauseOfBlockage>() {
                 public CauseOfBlockage call() throws Exception {
                     try {
-                        return prerequisite.check(node);
+                        return prerequisite.check(node, item);
                     } catch (Exception e) {
                         return CauseOfBlockage.fromMessage(Messages._JobPrerequisitesChecker_FailedToCheckJobProrequisites(e.getMessage()));
                     }
