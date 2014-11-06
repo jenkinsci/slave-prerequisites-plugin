@@ -20,6 +20,7 @@ package com.cloudbees.plugins;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.*;
+import hudson.model.Queue;
 import hudson.model.queue.CauseOfBlockage;
 import hudson.tasks.BatchFile;
 import hudson.tasks.CommandInterpreter;
@@ -31,6 +32,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import static hudson.model.TaskListener.NULL;
@@ -59,15 +61,19 @@ public class JobPrerequisites extends JobProperty<AbstractProject<?, ?>> impleme
     /**
      * @return true if all prerequisites a met on the target Node
      */
-    public CauseOfBlockage check(Node node) throws IOException, InterruptedException {
+    public CauseOfBlockage check(Node node, Queue.BuildableItem item)
+            throws IOException, InterruptedException {
         CommandInterpreter shell = getCommandInterpreter(this.script);
         FilePath root = node.getRootPath();
         if (root == null) return new CauseOfBlockage.BecauseNodeIsOffline(node); //offline ?
 
+        HashMap<String, String> envs = new HashMap<String, String>();
+        envs.put("PARAMS", item.getParams());
+
         FilePath scriptFile = shell.createScriptFile(root);
         shell.buildCommandLine(scriptFile);
         int r = node.createLauncher(NULL).launch().cmds(shell.buildCommandLine(scriptFile))
-                .stdout(NULL).pwd(root).start().joinWithTimeout(60, TimeUnit.SECONDS, NULL);
+                .envs(envs).stdout(NULL).pwd(root).start().joinWithTimeout(60, TimeUnit.SECONDS, NULL);
         return r == 0 ? null : new BecausePrerequisitesArentMet(node);
     }
 
