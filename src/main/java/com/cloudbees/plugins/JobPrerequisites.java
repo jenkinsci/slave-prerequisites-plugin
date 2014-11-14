@@ -74,6 +74,7 @@ public class JobPrerequisites extends JobProperty<AbstractProject<?, ?>> impleme
         shell.buildCommandLine(scriptFile);
         int r = node.createLauncher(NULL).launch().cmds(shell.buildCommandLine(scriptFile))
                 .envs(envs).stdout(NULL).pwd(root).start().joinWithTimeout(60, TimeUnit.SECONDS, NULL);
+        scriptFile.delete();
         return r == 0 ? null : new BecausePrerequisitesArentMet(node);
     }
 
